@@ -1,0 +1,19 @@
+{
+  "name": "descrever",
+  "version": "0.0.1",
+  "description": "teste",
+  "main": "botjs.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mastodon",
+    "bot"
+  ],
+  "author": "Brenno Machado",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "mastodon-api": "^1.3.0"
+  }
+}
