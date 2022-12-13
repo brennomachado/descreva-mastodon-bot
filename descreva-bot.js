@@ -16,11 +16,13 @@ const info_toot = {
 };
 
 //Função para download de imagem por url
-function download(url, path, callback) {
-  request.head(url, (err, res, body) => {
+const download = function (url, path, callback) {
+  request.head(url, function (err, res, body) {
+    // console.log('content-type:', res.headers['content-type']);
+    // console.log('content-length:', res.headers['content-length']);
     request(url).pipe(fs.createWriteStream(path)).on('close', callback);
   });
-}
+};
 
 //Conexão com API do Mastodon
 console.log('Mastodon Bot starting...');
@@ -124,6 +126,7 @@ async function dados(acct, reply_id, content, anterior_id) {
         // );
         console.log(`MEDIA LENGTH: ${data.media_attachments.length}`);
         if (!data.media_attachments.length) {
+          return;
         } else {
           // Verificando CW e imagem sensível
           if (data.sensitve === true) {
