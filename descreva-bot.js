@@ -47,7 +47,9 @@ stream.on('message', (response) => {
     id = response.data.status.id;
     acct = response.data.account.acct;
     content = response.data.status.content.match(/descri..o/im)
-      ? response.data.status.content.replace(/<[^>]*>?/gm, '')
+      ? response.data.status.content
+          .replace(/<br>>?/gm, '\n')
+          .replace(/<[^>]*>?/gm, '')
       : 0;
 
     console.log(`Content após captura: ${content}`);
@@ -142,8 +144,7 @@ async function dados(acct, reply_id, content, anterior_id) {
           info_toot.texto_original = data.content.replace(/<[^>]*>?/gm, '');
           info_toot.url = data.url;
           url = data.media_attachments[0].remote_url;
-          const path =
-            '/home/brenno/Documents/automacao/Bots-Mastodon/descrever/imagem.png';
+          const path = './imagem.png';
           console.log(`Chamando Doownload`);
           console.log(
             `Antes Acct ${acct}, reply_id: ${reply_id} content: ${content}`
