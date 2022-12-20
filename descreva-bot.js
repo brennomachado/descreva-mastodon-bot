@@ -59,6 +59,7 @@ stream.on('message', (response) => {
       //REMOVIDO REPLY AO USUÁRIO POIS PQP, MT CHATO.
       console.log(`NÃO HÁ REPLY OU DESCRIÇÃO VÁLIDOS`);
       console.log(`\t\tIn_reply_ID: ${in_reply_to_id}`);
+      cabecalho('FIM DA VEZ', '-', cont);
     }
   }
 });
