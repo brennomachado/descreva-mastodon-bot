@@ -2,37 +2,15 @@ require('dotenv').config();
 const Mastodon = require('mastodon-api');
 const fs = require('fs');
 const request = require('request');
-const { info } = require('console');
-
-//Não me pergunte, vou negar 👀
-let count = 0,
-  id = '',
-  acct = '',
-  content = '',
-  today,
-  date,
-  time;
-
-const info_toot = {
-  cw: null,
-  sensitve: null,
-  texto_cw: '',
-  url: '',
-  texto_original: '',
-  debug: false,
-};
 
 //Função para download de imagem por url
 const download = function (url, path, callback) {
   request.head(url, function (err, res, body) {
-    // console.log('content-type:', res.headers['content-type']);
-    // console.log('content-length:', res.headers['content-length']);
     request(url).pipe(fs.createWriteStream(path)).on('close', callback);
   });
 };
 
 //Conexão com API do Mastodon
-console.log('Mastodon Bot starting...');
 const M = new Mastodon({
   client_key: process.env.CLIENT_KEY,
   client_secret: process.env.CLIENT_SECRET,
@@ -41,204 +19,182 @@ const M = new Mastodon({
   api_url: 'https://botsin.space/api/v1/',
 });
 const stream = M.stream('streaming/user');
+let cont = 0;
 
 // Ouvindo menções
 stream.on('message', (response) => {
   if (response.event === 'notification' && response.data.type === 'mention') {
-    today = new Date();
-    date = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
-    time = `${today.getHours()}:${today.getMinutes()}:${today.getSeconds()}`;
-    count++;
-    console.log(`~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`);
-    console.log(`INICIO STREAM ${count} - DT/HORA: ${date} - ${time}`);
-    console.log(`~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n`);
+    cont++;
+    cabecalho('INÍCIO STREAM', '~', cont);
     // Para baixar e ver a organização do json
     // fs.writeFileSync(
-    //   `TESTE-DATA${new Date().getTime()}.json`,
+    //   `RESPONSE${new Date().getTime()}.json`,
     //   JSON.stringify(response, null, 2)
     // );
-    console.log(`RESPONSE.CONTENT:\n\t${response.data.status.content}`);
-    id = response.data.status.id;
-    acct = response.data.account.acct;
-    content = response.data.status.content.match(/descri..o/im)
-      ? response.data.status.content
-          .replace(/<p>>?/gm, '\n\n')
-          .replace(/<br>>?/gm, '\n')
-          .replace(/<[^>]*>?/gm, '')
+    console.log(`RESPONSE.CONTENT:\n\t${response.data.status.content}\n`);
+
+    let id_resp = response.data.status.id;
+    let conta_resp = response.data.account.acct;
+    const in_reply_to_id = response.data.status.in_reply_to_id;
+    let tags = response.data.status.tags.length
+      ? response.data.status.tags.map((tag) => {
+          return tag.name.toLowerCase();
+        })
       : 0;
 
-    console.log(`Content após captura e sem edição:\n\t ${content}`);
-    const resposta_anterior = response.data.status.in_reply_to_id;
+    console.log(`RESPONDER PARA: @${conta_resp}`);
+    console.log(`TAGS USADAS: ${tags}\n`);
 
-    if (content != 0) {
-      //Tratando as palavras chaves da descrição enviada
-      info_toot.debug = content.match(/#debug/im) ? true : false;
-      console.log(`info_too.debug: ${info_toot.debug}`);
-      content = content.replace(/#cw/im, '#cw');
-      content = content.replace(/#oculta/im, '#oculta');
-      content = content.replace(/#descri..o/im, '#descricao');
-      content = content.replace(/#debug/im, '');
-
-      //Fazendo a limpeza da descrição enviada e separando CW
-      let post_item = 0;
-      if (content.match(/#oculta/im)) {
-        info_toot.sensitve = true;
-        post_item = content.lastIndexOf('#oculta');
-        content = content.slice(0, post_item).trim();
-      }
-      if (content.match(/#cw/im)) {
-        info_toot.cw = true;
-        post_item = content.lastIndexOf('#cw');
-        info_toot.texto_cw = content
-          .slice(post_item + 3, content.length)
-          .trim();
-        content = content.slice(0, post_item).trim();
-      }
-      content.replace(/#descri..o/im, '#descricao');
-      post_item = content.lastIndexOf('#descri');
-      content = content.slice(post_item + 10, content.length).trim();
-
-      //Logs ¯\_(ツ)_/¯
-      console.log(
-        `CONTENT após edição:\n\t${content}\nCW:${info_toot.texto_cw}`
-      );
-      console.log(`REPLY ID: \n ${resposta_anterior}`);
-      console.log(
-        `No Stream: Acct ${acct} - \nID: ${id}\nCW: ${info_toot.texto_cw}`
-      );
-      console.log(`Chamando dados()`);
+    //Procura #descrição de todas as formas nas Tags
+    if (tags != 0) {
+      var valida_tag_descricao = tags.reduce((encontrou, valor) => {
+        return encontrou + valor.match(/descri..o/im) ? 1 : 0;
+      }, 0);
     }
-    dados(acct, id, content, resposta_anterior);
+    if (in_reply_to_id !== null && valida_tag_descricao !== 0) {
+      var conteudos_toot = formataContent(response.data.status.content);
+      conteudos_toot.tags = tags;
+      doTheJob(conteudos_toot, in_reply_to_id, id_resp, conta_resp);
+    } else {
+      //REMOVIDO REPLY AO USUÁRIO POIS PQP, MT CHATO.
+      console.log(`NÃO HÁ REPLY OU DESCRIÇÃO VÁLIDOS`);
+      console.log(`\t\tIn_reply_ID: ${in_reply_to_id}`);
+    }
   }
 });
 
-//Função para fazer Get e postar resposta caso não siga o padrão do bot
-async function dados(acct, reply_id, content, anterior_id) {
-  console.log(`Dentro da DADOS`);
-  console.log(`Acct ${acct}, reply_id: ${reply_id} content: ${content}\n`);
+function cabecalho(texto, caractere, cont) {
+  const today = new Date();
+  const date = `${today.getFullYear()}/${
+    today.getMonth() + 1
+  }/${today.getDate()}`;
+  const time = `${today.getHours()}:${today.getMinutes()}:${today.getSeconds()}`;
+  console.log(`\n${caractere.repeat(50)}`);
+  console.log(`${texto} ${cont} - DT/HORA: ${date} - ${time}`);
+  console.log(`${caractere.repeat(50)}\n`);
+}
 
-  //Se não tiver Descrição ou não for resposta a um toot, erro
-  if (content === 0 || anterior_id === null) {
-    console.log(`REPLY NÃO VÁLIDO\n`);
-    const params = {
-      status: `@${acct} COMO FUNCIONA:\n\n1. Clique e abra o toot que você quer por descrição na imagem;\n2. Marque este perfil no toot: @descreva@botsin.space;\n3. Adicione a hashtag #Descrição em seguida escreva sua Descrição\n\nApós a sua descrição você pode adicionar a tag #CW e em seguida adicionar um título para o CW.\n\nEste bot ainda está em teste, qualquer coisa me dê um toque (contato na descrição do perfil).`,
-      in_reply_to_id: reply_id,
-      visibility: 'direct',
-    };
-    M.post('statuses', params);
+function formataContent(content) {
+  let posicao_item = 0;
+  let conteudos = {
+    cw: false,
+    sensitive: false,
+    texto_cw: '',
+    content: [''],
+    url: '',
+  };
+  content = content
+    .replace(/<p>>?/gm, '\n\n')
+    .replace(/<br>>?/gm, '\n')
+    .replace(/<[^>]*>?/gm, '')
+    .replace(/#debug/im, '')
+    .trim();
 
-    today = new Date();
-    date = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
-    time = `${today.getHours()}:${today.getMinutes()}:${today.getSeconds()}`;
-    console.log(`-------------------------------------------------`);
-    console.log(`FIM DA VEZ ${count} - DT/HORA: ${date} - ${time}`);
-    console.log(`-------------------------------------------------\n\n`);
-    return {
-      success: true,
-    };
-  } else {
-    // Pegando informações do toot a ser copiado
-    const replyParams = {
-      id: anterior_id,
-    };
-    console.log(`Fazendo o M.GET \n`);
-    await M.get('statuses/:id', replyParams, (error, data) => {
-      console.log(`Dentro M.GET`);
-      console.log(`Acct ${acct}, reply_id: ${reply_id} content: ${content}\n`);
-      if (error) {
-        console.log(error);
+  if (content.match(/#oculta/im)) {
+    conteudos.sensitive = true;
+    post_item = content.lastIndexOf('#oculta');
+    content = content.slice(0, post_item).trim();
+  }
+  if (content.match(/#cw/im)) {
+    conteudos.cw = true;
+    post_item = content.lastIndexOf('#cw');
+    conteudos.texto_cw = content.slice(post_item + 3, content.length).trim();
+    content = content.slice(0, post_item).trim();
+    console.log(`CW: ${conteudos.texto_cw}`);
+  }
+  content.replace(/#descri..o/im, '#descricao');
+  post_item = content.lastIndexOf('#descri');
+  conteudos.content[0] = content.slice(post_item + 10, content.length).trim();
+  console.log(`DESCRIÇÃO: ${conteudos.content[0]}`);
+
+  return conteudos;
+}
+
+async function doTheJob(conteudos, in_reply_to_id, id_resp, conta_resp) {
+  console.log(`REPLY TO: ${in_reply_to_id}\n`);
+  const conteudo_get = await facaGet(in_reply_to_id);
+  // fs.writeFileSync(
+  //   `CONT-GET${new Date().getTime()}.json`,
+  //   JSON.stringify(conteudo_get.data, null, 2)
+  // );
+
+  //Verifica se houve Get válido e se há imagem no mesmo antes de continuar
+  if (conteudo_get !== 0 && conteudo_get.data.media_attachments.length !== 0) {
+    const url = conteudo_get.data.media_attachments[0].remote_url;
+    conteudos.url = conteudo_get.data.url;
+
+    console.log(`URL DA IMAGEM: ${url}\n`);
+    download(url, './imagem.png', async () => {
+      //ASYNC PARA UPLOAD E TOOT
+      const imagem = fs.createReadStream('./imagem.png');
+      console.log(`UPLOAD DA IMG FEITO\n`);
+      const uploadParams = {
+        file: imagem,
+        description: conteudos.content[0],
+      };
+      const uploadResponse = await M.post('media', uploadParams);
+      // fs.writeFileSync(
+      //   `UPLOAD${new Date().getTime()}.json`,
+      //   JSON.stringify(uploadResponse, null, 2)
+      // );
+      const texto_original = conteudo_get.data.content
+        .replace(/<p>>?/gm, '\n\n')
+        .replace(/<br>>?/gm, '\n')
+        .replace(/<[^>]*>?/gm, '');
+
+      //PREPARANDO CONTEÚDO PARA O TOOT
+      const tootParams = {
+        status: `${texto_original}\n\n🔗: ${conteudos.url}\ncc: @${conta_resp} `,
+        in_reply_to_id: id_resp,
+        media_ids:
+          uploadResponse.data.id !== null ? [uploadResponse.data.id] : [],
+      };
+      if (conteudos.cw) {
+        tootParams.spoiler_text = conteudos.texto_cw;
       } else {
-        // fs.writeFileSync(
-        //   `TESTE_IMAGETAG${new Date().getTime()}.json`,
-        //   JSON.stringify(data, null, 2)
-        // );
-        console.log(`Content original: ${data.content}\n`);
-        console.log(`MEDIA LENGTH: ${data.media_attachments.length}`);
-        if (!data.media_attachments.length) {
-          return;
-        } else {
-          // Verificando CW e imagem sensível
-          if (data.sensitve === true) {
-            info_toot.sensitve = true;
-          }
-          if (!info_toot.cw) {
-            info_toot.cw = true;
-            info_toot.texto_cw = data.spoiler_text;
-          }
-          info_toot.texto_original = data.content
-            .replace(/<p>>?/gm, '\n\n')
-            .replace(/<br>>?/gm, '\n')
-            .replace(/<[^>]*>?/gm, '');
-          info_toot.url = data.url;
-          url = data.media_attachments[0].remote_url;
-          const path = './imagem.png';
-          console.log(`URL salva: ${url}\n}`);
-
-          //Finalmente fazendo Download da imagem para repostar
-          console.log(`Chamando Doownload`);
-          download(url, path, () => {
-            if (content != 0) {
-              console.log(`Chamando toot()`);
-              toot(acct, reply_id, content);
-              console.log('✅ Done!');
-            }
-          });
-        }
+        tootParams.spoiler_text = conteudo_get.data.spoiler_text;
       }
+      if (conteudo_get.data.sensitive === true) {
+        conteudos.sensitive = true;
+        tootParams.sensitive = true;
+      }
+      if (conteudos.tags.includes('debug')) {
+        tootParams.visibility = 'direct';
+      }
+
+      //FAZER POST
+      await M.post('statuses', tootParams);
+      console.log('POST ✅ Done!');
+      cabecalho('FIM DA VEZ', '-', cont);
     });
+  } else {
+    if (conteudo_get !== 0) console.log(`Erro recebido do M.GET retorno 0`);
+    else if (conteudo_get.data.media_attachments.length !== 0)
+      console.log(`TOOT ORIGINAL SEM IMAGENS`);
   }
 }
 
-//Função que posta a o toot com a imagem com descrição
-async function toot(acct, reply_id, content) {
-  console.log(`Tentando pegar a imagem do PC`);
-  const imagem = fs.createReadStream('./imagem.png');
+async function facaGet(reply) {
+  let ok = 1;
+  const parametro = { id: reply };
 
-  // Definindo parametros e upload da midia
-  const uploadParams = {
-    file: imagem,
-    description: content,
-  };
-  const uploadResponse = await M.post('media', uploadParams);
-  const mediaId = uploadResponse.data.id;
-
-  // Parametros do toot com a imagem
-  let tootParams = {
-    status: `${info_toot.texto_original}\n\n🔗: ${info_toot.url}\ncc: @${acct} `,
-    in_reply_to_id: reply_id,
-    media_ids: [mediaId],
-  };
-  if (info_toot.cw) {
-    console.log(`IF do CW: ${info_toot.cw}, TEXTO CW: ${info_toot.texto_cw}`);
-    tootParams.spoiler_text = info_toot.texto_cw;
-    tootParams.sensitve = info_toot.sensitve;
+  //Para federar o conteúdo??
+  let resposta = await M.get('statuses/:id', parametro, (error, data) => {});
+  resposta = await M.get('statuses/:id', { id: reply }, (error, data) => {
+    if (error) {
+      // fs.writeFileSync(`JSON_ERROR.json`, JSON.stringify(data, null, 2));
+      console.log(`ERRO na FacaGET \n\t${error}`);
+      ok = 0;
+    } else {
+      // fs.writeFileSync(`JSON_RESP_OK.json`, JSON.stringify(data, null, 2));
+      console.log(`STATUS ORIGINAL:\n\t${data.content}\n`);
+    }
+  });
+  if (ok) {
+    console.log(`COPIADO DE @${resposta.data.account.acct}\n`);
+    return resposta;
+  } else {
+    console.log(`ERRO M.GET:\n\t${resposta.error}\n`);
+    return 0;
   }
-  console.log(`DEBUG ${info_toot.debug}`);
-  if (info_toot.debug) {
-    tootParams.visibility = 'direct';
-  }
-
-  // Fazendo o toot
-  await M.post('statuses', tootParams);
-
-  today = new Date();
-  date = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
-  time = `${today.getHours()}:${today.getMinutes()}:${today.getSeconds()}`;
-  console.log(`-------------------------------------------------`);
-  console.log(`FIM DA VEZ ${count} - DT/HORA: ${date} - ${time}`);
-  console.log(`-------------------------------------------------\n\n`);
-
-  //Novamente não me pergunte..., eu não fiz nada 👀
-  id = '';
-  acct = '';
-  content = '';
-  info_toot.cw = null;
-  info_toot.sensitve = null;
-  info_toot.texto_cw = '';
-  info_toot.url = '';
-  info_toot.texto_original = '';
-  info_toot.debug = false;
-  return {
-    success: true,
-  };
 }
