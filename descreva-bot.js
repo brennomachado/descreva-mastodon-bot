@@ -88,7 +88,11 @@ function formataContent(content) {
     .replace(/<br>>?/gm, '\n')
     .replace(/<[^>]*>?/gm, '')
     .replace(/#debug/im, '')
+    .replace(/#oculta/im, '#oculta')
+    .replace(/#cw/im, '#cw')
     .trim();
+
+  console.log(`CONTENT 1°Formatação:\n\t${content}\n`);
 
   if (content.match(/#oculta/im)) {
     conteudos.sensitive = true;
@@ -100,7 +104,7 @@ function formataContent(content) {
     post_item = content.lastIndexOf('#cw');
     conteudos.texto_cw = content.slice(post_item + 3, content.length).trim();
     content = content.slice(0, post_item).trim();
-    console.log(`CW: ${conteudos.texto_cw}`);
+    console.log(`CW: ${conteudos.texto_cw}\n`);
   }
   content.replace(/#descri..o/im, '#descricao');
   post_item = content.lastIndexOf('#descri');
