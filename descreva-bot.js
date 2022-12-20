@@ -50,11 +50,12 @@ stream.on('message', (response) => {
       var valida_tag_descricao = tags.reduce((encontrou, valor) => {
         return encontrou + valor.match(/descri..o/im) ? 1 : 0;
       }, 0);
-    }
-    if (in_reply_to_id !== null && valida_tag_descricao !== 0) {
-      var conteudos_toot = formataContent(response.data.status.content);
-      conteudos_toot.tags = tags;
-      doTheJob(conteudos_toot, in_reply_to_id, id_resp, conta_resp);
+      console.log(`Valida Descrição: ${valida_tag_descricao}`);
+      if (in_reply_to_id !== null && valida_tag_descricao !== 0) {
+        var conteudos_toot = formataContent(response.data.status.content);
+        conteudos_toot.tags = tags;
+        doTheJob(conteudos_toot, in_reply_to_id, id_resp, conta_resp);
+      }
     } else {
       //REMOVIDO REPLY AO USUÁRIO POIS PQP, MT CHATO.
       console.log(`NÃO HÁ REPLY OU DESCRIÇÃO VÁLIDOS`);
