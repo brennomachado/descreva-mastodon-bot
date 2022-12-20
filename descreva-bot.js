@@ -106,7 +106,7 @@ function formataContent(content) {
     content = content.slice(0, post_item).trim();
     console.log(`CW: ${conteudos.texto_cw}\n`);
   }
-  content.replace(/#descri..o/im, '#descricao');
+  content = content.replace(/#descri..o/im, '#descricao');
   post_item = content.lastIndexOf('#descri');
   conteudos.content[0] = content.slice(post_item + 10, content.length).trim();
   console.log(`DESCRIÇÃO: ${conteudos.content[0]}`);
@@ -117,14 +117,11 @@ function formataContent(content) {
 async function doTheJob(conteudos, in_reply_to_id, id_resp, conta_resp) {
   console.log(`REPLY TO: ${in_reply_to_id}\n`);
   const conteudo_get = await facaGet(in_reply_to_id);
-  // fs.writeFileSync(
-  //   `CONT-GET${new Date().getTime()}.json`,
-  //   JSON.stringify(conteudo_get.data, null, 2)
-  // );
 
   //Verifica se houve Get válido e se há imagem no mesmo antes de continuar
   if (conteudo_get !== 0 && conteudo_get.data.media_attachments.length !== 0) {
-    const url = conteudo_get.data.media_attachments[0].remote_url;
+    let url = conteudo_get.data.media_attachments[0].remote_url;
+    if (url === null) url = conteudo_get.data.media_attachments[0].url;
     conteudos.url = conteudo_get.data.url;
 
     console.log(`URL DA IMAGEM: ${url}\n`);
@@ -137,10 +134,6 @@ async function doTheJob(conteudos, in_reply_to_id, id_resp, conta_resp) {
         description: conteudos.content[0],
       };
       const uploadResponse = await M.post('media', uploadParams);
-      // fs.writeFileSync(
-      //   `UPLOAD${new Date().getTime()}.json`,
-      //   JSON.stringify(uploadResponse, null, 2)
-      // );
       const texto_original = conteudo_get.data.content
         .replace(/<p>>?/gm, '\n\n')
         .replace(/<br>>?/gm, '\n')
