@@ -56,12 +56,14 @@ stream.on('message', (response) => {
         var conteudos_toot = formataContent(response.data.status.content);
         conteudos_toot.tags = tags;
         doTheJob(conteudos_toot, in_reply_to_id, id_resp, conta_resp);
+      } else {
+        console.log(`NÃO HÁ REPLY OU DESCRIÇÃO VÁLIDOS`);
+        cabecalho('FIM DA VEZ', '-', cont);
       }
     } else {
-      //REMOVIDO REPLY AO USUÁRIO POIS PQP, MT CHATO.
-      console.log(`NÃO HÁ REPLY OU DESCRIÇÃO VÁLIDOS`);
+      console.log(`NÃO HÁ TAGS VÁLIDAS`);
+      cabecalho('FIM DA VEZ', '-', cont);
     }
-    cabecalho('FIM DA VEZ', '-', cont);
   }
 });
 
