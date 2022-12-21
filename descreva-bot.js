@@ -20,7 +20,7 @@ const M = new Mastodon({
 });
 const stream = M.stream('streaming/user');
 let cont = 0;
-
+console.log('\n\n--START BOT--\n\n');
 // Ouvindo menções
 stream.on('message', (response) => {
   if (response.event === 'notification' && response.data.type === 'mention') {
@@ -44,6 +44,7 @@ stream.on('message', (response) => {
 
     console.log(`RESPONDER PARA: @${conta_resp}`);
     console.log(`TAGS USADAS: ${tags}\n`);
+    console.log(`IN_REPLY_TO_ID: ${in_reply_to_id}`);
 
     //Procura #descrição de todas as formas nas Tags
     if (tags != 0) {
@@ -59,9 +60,8 @@ stream.on('message', (response) => {
     } else {
       //REMOVIDO REPLY AO USUÁRIO POIS PQP, MT CHATO.
       console.log(`NÃO HÁ REPLY OU DESCRIÇÃO VÁLIDOS`);
-      console.log(`\t\tIn_reply_ID: ${in_reply_to_id}`);
-      cabecalho('FIM DA VEZ', '-', cont);
     }
+    cabecalho('FIM DA VEZ', '-', cont);
   }
 });
 
