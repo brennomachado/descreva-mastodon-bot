@@ -124,7 +124,7 @@ async function doTheJob(conteudos, in_reply_to_id, id_resp, conta_resp) {
 
   // Verifica visibilidade do toot
   if (conteudo_get !== 0) {
-    const visivel = conteudo_get.data.status.visibility;
+    const visivel = conteudo_get.data.visibility;
     if (visivel === 'private' || visivel === 'direct') {
       console.log(`VISIBILIDADE: Não compatível - ${visivel}`);
       conteudo_get = 0;
