@@ -187,10 +187,12 @@ async function doTheJob(conteudos, in_reply_to_id, id_resp, conta_resp) {
     });
   } else {
     if (conteudo_get === 0) console.log(`Erro recebido do M.GET retorno 0`);
-    else if (conteudo_get.data.media_attachments.length === 0)
-      console.log(`TOOT ORIGINAL SEM IMAGENS`);
+    else {
+      if (conteudo_get.data.media_attachments.length === 0)
+        console.log(`TOOT ORIGINAL SEM IMAGENS`);
+    }
+    cabecalho('FIM DA VEZ', '-', cont);
   }
-  cabecalho('FIM DA VEZ', '-', cont);
 }
 
 async function facaGet(reply) {
