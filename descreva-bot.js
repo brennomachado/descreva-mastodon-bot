@@ -32,6 +32,12 @@ stream.on('message', (response) => {
     //   JSON.stringify(response, null, 2)
     // );
     console.log(`RESPONSE.CONTENT:\n\t${response.data.status.content}\n`);
+    console.log(
+      `RESPONSE.CONTENT LIMPO:\n\t${response.data.status.content.replace(
+        /<[^>]*>?/gm,
+        ''
+      )}\n`
+    );
 
     let id_resp = response.data.status.id;
     let conta_resp = response.data.account.acct;
@@ -180,10 +186,11 @@ async function doTheJob(conteudos, in_reply_to_id, id_resp, conta_resp) {
       cabecalho('FIM DA VEZ', '-', cont);
     });
   } else {
-    if (conteudo_get !== 0) console.log(`Erro recebido do M.GET retorno 0`);
-    else if (conteudo_get.data.media_attachments.length !== 0)
+    if (conteudo_get === 0) console.log(`Erro recebido do M.GET retorno 0`);
+    else if (conteudo_get.data.media_attachments.length === 0)
       console.log(`TOOT ORIGINAL SEM IMAGENS`);
   }
+  cabecalho('FIM DA VEZ', '-', cont);
 }
 
 async function facaGet(reply) {
