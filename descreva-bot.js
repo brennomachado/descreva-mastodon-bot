@@ -122,6 +122,17 @@ async function doTheJob(conteudos, in_reply_to_id, id_resp, conta_resp) {
   console.log(`REPLY TO: ${in_reply_to_id}\n`);
   const conteudo_get = await facaGet(in_reply_to_id);
 
+  // Verifica visibilidade do toot
+  if (conteudo_get !== 0) {
+    const visivel = conteudo_get.data.status.visibility;
+    if (visivel === 'private' || visivel === 'direct') {
+      console.log(`VISIBILIDADE: Não compatível - ${visivel}`);
+      conteudo_get = 0;
+    } else {
+      console.log(`VISIBILIDADE: OK  - ${visivel}`);
+    }
+  }
+
   //Verifica se houve Get válido e se há imagem no mesmo antes de continuar
   if (conteudo_get !== 0 && conteudo_get.data.media_attachments.length !== 0) {
     let url = conteudo_get.data.media_attachments[0].remote_url;
