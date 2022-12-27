@@ -120,7 +120,7 @@ function formataContent(content) {
 
 async function doTheJob(conteudos, in_reply_to_id, id_resp, conta_resp) {
   console.log(`REPLY TO: ${in_reply_to_id}\n`);
-  const conteudo_get = await facaGet(in_reply_to_id);
+  let conteudo_get = await facaGet(in_reply_to_id);
 
   // Verifica visibilidade do toot
   if (conteudo_get !== 0) {
