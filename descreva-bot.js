@@ -55,7 +55,7 @@ stream.on('message', (response) => {
     //Procura #descrição de todas as formas nas Tags
     if (tags != 0) {
       var valida_tag_descricao = tags.reduce((encontrou, valor) => {
-        return encontrou + valor.match(/descri..o/im) ? 1 : 0;
+        return encontrou + (valor.match(/descri..o/im) || valor.match(/descreva/im)) ? 1 : 0;
       }, 0);
       console.log(`Valida Descrição: ${valida_tag_descricao}`);
       if (in_reply_to_id !== null && valida_tag_descricao !== 0) {
