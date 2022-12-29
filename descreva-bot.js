@@ -116,7 +116,7 @@ function formataContent(content) {
     content = content.slice(0, post_item).trim();
     console.log(`CW: ${conteudos.texto_cw}\n`);
   }
-  content = content.replace(/#descri..o/im, '#descricao');
+  content = content.replace(/#descri..o/im, '#descricao').replace(/#descreva/im, '#descricao');
   post_item = content.lastIndexOf('#descri');
   conteudos.content[0] = content.slice(post_item + 10, content.length).trim();
   console.log(`DESCRIÇÃO: ${conteudos.content[0]}`);
