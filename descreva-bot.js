@@ -55,7 +55,7 @@ stream.on('message', (response) => {
     //Procura #descrição de todas as formas nas Tags
     if (tags != 0) {
       var valida_tag_descricao = tags.reduce((encontrou, valor) => {
-        return encontrou + valor.match(/descri..o/im) ? 1 : 0;
+        return encontrou + valor.match(/descri..o|descreva/im) ? 1 : 0;
       }, 0);
       console.log(`Valida Descrição: ${valida_tag_descricao}`);
       if (in_reply_to_id !== null && valida_tag_descricao !== 0) {
@@ -116,7 +116,7 @@ function formataContent(content) {
     content = content.slice(0, post_item).trim();
     console.log(`CW: ${conteudos.texto_cw}\n`);
   }
-  content = content.replace(/#descri..o/im, '#descricao');
+  content = content.replace(/#descri..o|#descreva/im, '#descricao');
   post_item = content.lastIndexOf('#descri');
   conteudos.content[0] = content.slice(post_item + 10, content.length).trim();
   console.log(`DESCRIÇÃO: ${conteudos.content[0]}`);
