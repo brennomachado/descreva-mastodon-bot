@@ -20,7 +20,7 @@ const M = new Mastodon({
 });
 const stream = M.stream('streaming/user');
 let cont = 0;
-console.log('\n\n--START BOT--\n\n');
+console.log('\n--START BOT--\n');
 // Ouvindo menções
 stream.on('message', (response) => {
   if (response.event === 'notification' && response.data.type === 'mention') {
@@ -102,8 +102,6 @@ function formataContent(content) {
     .replace(/#cw/im, '#cw')
     .trim();
 
-  console.log(`CONTENT 1°Formatação:\n\t${content}\n`);
-
   if (content.match(/#oculta/im)) {
     conteudos.sensitive = true;
     post_item = content.lastIndexOf('#oculta');
@@ -119,7 +117,7 @@ function formataContent(content) {
   content = content.replace(/#descri..o|#descreva/im, '#descricao');
   post_item = content.lastIndexOf('#descri');
   conteudos.content[0] = content.slice(post_item + 10, content.length).trim();
-  console.log(`DESCRIÇÃO: ${conteudos.content[0]}`);
+  console.log(`DESCRIÇÃO FORMATADA:\n\t${conteudos.content[0]}`);
 
   return conteudos;
 }
