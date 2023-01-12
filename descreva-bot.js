@@ -85,7 +85,7 @@ function cabecalho(texto, caractere, cont) {
 }
 
 function formataContent(content) {
-  let posicao_item = 0;
+  let post_item = 0;
   let conteudos = {
     cw: false,
     sensitive: false,
@@ -108,10 +108,16 @@ function formataContent(content) {
     content = content.slice(0, post_item).trim();
   }
   if (content.match(/#cw/im)) {
+    const post_item_d = content.lastIndexOf('#descr');
     conteudos.cw = true;
     post_item = content.lastIndexOf('#cw');
-    conteudos.texto_cw = content.slice(post_item + 3, content.length).trim();
-    content = content.slice(0, post_item).trim();
+    if (post_item > post_item_d) {
+      conteudos.texto_cw = content.slice(post_item + 3, content.length).trim();
+      content = content.slice(0, post_item).trim();
+    } else {
+      conteudos.texto_cw = content.slice(post_item + 3, post_item_d).trim();
+      content = content.slice(post_item_d, content.length).trim();
+    }
     console.log(`CW: ${conteudos.texto_cw}\n`);
   }
   content = content.replace(/#descri..o|#descreva/im, '#descricao');
