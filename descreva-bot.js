@@ -28,7 +28,7 @@ stream.on('message', (response) => {
     cabecalho('INÍCIO STREAM', '~', cont);
     // Para baixar e ver a organização do json
     // fs.writeFileSync(
-    //   `RESPONSE${new Date().getTime()}.json`,
+    //   `NOT-CONT${new Date().getTime()}.json`,
     //   JSON.stringify(response, null, 2)
     // );
     console.log(`RESPONSE.CONTENT:\n\t${response.data.status.content}\n`);
@@ -54,7 +54,7 @@ stream.on('message', (response) => {
 
     //Procura #descrição de todas as formas nas Tags
     if (tags != 0) {
-      var valida_tag_descricao = tags.reduce((encontrou, valor) => {
+      const valida_tag_descricao = tags.reduce((encontrou, valor) => {
         return encontrou + valor.match(/descri..o|descreva/im) ? 1 : 0;
       }, 0);
       console.log(`Valida Descrição: ${valida_tag_descricao}`);
@@ -63,8 +63,34 @@ stream.on('message', (response) => {
         conteudos_toot.tags = tags;
         doTheJob(conteudos_toot, in_reply_to_id, id_resp, conta_resp);
       } else {
-        console.log(`NÃO HÁ REPLY OU DESCRIÇÃO VÁLIDOS`);
-        cabecalho('FIM DA VEZ', '-', cont);
+        // PARA DELETAR POST
+        const deleta = tags.reduce((encontrou, valor) => {
+          return encontrou + valor.match(/delete|deleta/im) ? 1 : 0;
+        }, 0);
+        console.log(`TENTATIVA DE DELETAR: ${deleta}`);
+        if (deleta) {
+          let resposta = M.get(
+            'statuses/:id',
+            { id: in_reply_to_id },
+            (error, data) => {
+              let txt = `cc: <span class="h-card"><a href="${response.data.account.url}"`;
+              console.log(`@${conta_resp} pediu para deletar: ${data.id}`);
+              console.log(`\t\tURL: ${data.url}`);
+
+              if (data.content.indexOf(txt) !== -1) {
+                console.log(`DELETANDO..`);
+                M.delete('statuses/:id', { id: data.id }, (error, data) => {});
+              } else {
+                console.log('NÃO FOI PERMITIDO DELETAR');
+                console.log(`\t\tA descrição não é de @${conta_resp}`);
+              }
+              cabecalho('FIM DA VEZ', '-', cont);
+            }
+          );
+        } else {
+          console.log(`NÃO HÁ REPLY OU DESCRIÇÃO VÁLIDOS`);
+          cabecalho('FIM DA VEZ', '-', cont);
+        }
       }
     } else {
       console.log(`NÃO HÁ TAGS VÁLIDAS`);
