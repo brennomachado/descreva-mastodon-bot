@@ -20,7 +20,7 @@ const M = new Mastodon({
 });
 const stream = M.stream('streaming/user');
 let cont = 0;
-console.log('\n--START BOT--\n');
+cabecalho('--START BOT--', ' ', ' ');
 // Ouvindo menções
 stream.on('message', (response) => {
   if (response.event === 'notification' && response.data.type === 'mention') {
