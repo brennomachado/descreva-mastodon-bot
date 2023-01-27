@@ -228,11 +228,9 @@ async function doTheJob(conteudos, in_reply_to_id, id_resp, conta_resp) {
 
 async function facaGet(reply) {
   let ok = 1;
-  const parametro = { id: reply };
 
   //Para federar o conteúdo??
-  let resposta = await M.get('statuses/:id', parametro, (error, data) => {});
-  resposta = await M.get('statuses/:id', { id: reply }, (error, data) => {
+  const resposta = await M.get('statuses/:id', { id: reply }, (error, data) => {
     if (error) {
       // fs.writeFileSync(`JSON_ERROR.json`, JSON.stringify(data, null, 2));
       console.log(`ERRO na FacaGET \n\t${error}`);
