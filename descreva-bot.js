@@ -62,20 +62,17 @@ stream.on('message', async (response) => {
     console.log(`IN_REPLY_TO_ID: ${in_reply_to_id}`);
 
     //Procura #descrição de todas as formas nas Tags
-      const valida_tag_descricao = tags.reduce((encontrou, valor) => {
-        return encontrou + valor.match(/descri..o|descreva/im) ? 1 : 0;
-      }, 0);
     if (tags.length !== 0) {
+      const valida_tag_descricao = tags.some(tag => tag.match(/^descri..o|descreva$/im));
       console.log(`Valida Descrição: ${valida_tag_descricao}`);
-      if (in_reply_to_id !== null && valida_tag_descricao !== 0) {
+
+      if (in_reply_to_id !== null && valida_tag_descricao) {
         var conteudos_toot = formataContent(response.data.status.content);
         conteudos_toot.tags = tags;
         doTheJob(conteudos_toot, in_reply_to_id, id_resp, conta_resp);
       } else {
         // PARA DELETAR POST
-        const deleta = tags.reduce((encontrou, valor) => {
-          return encontrou + valor.match(/delete|deleta/im) ? 1 : 0;
-        }, 0);
+        const deleta = tags.some((tag) => tag.match(/^delete|deleta$/im));
         console.log(`TENTATIVA DE DELETAR: ${deleta}`);
         if (deleta) {
           let resposta = M.get(
