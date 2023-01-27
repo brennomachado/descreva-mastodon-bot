@@ -1,0 +1,17 @@
+ATUALIZAÇÕES:
+
+2023.01.27: Corrigo problema que faz o bot funcionar apenas na segunda tentativa após uma falha ao recuperar o ID do toot original. Agradecimentos ao @claus@mastodon.com.br
+
+2023.01.12: Adicionado a opção de deletar posts respondendo com a hashtag #deleta
+
+2023.01.11: Funciona corretamente independe da ordem das tags #cw e #descrição.
+
+2023.01.04: Funciona também com a tag #descreva. Agradecimentos ao: @_notDaniel@mastodon.online 
+
+2022.12.26: Corrigido bug ao interagir em toots privados. Agradecimentos à @m4lu@masto.donte.com.br 
+
+2022.12.20: Corrigido bug para copiar na instância botsin.space e agora remove a tag #descrição que ficava em alguns casos na imagem.
+
+2022.12.20: Refatoração de código e melhoria de instabilidades (talvez?)
+
+2022.12.13: Agora trata corretamente quebra de linha na descrição das imagens.
