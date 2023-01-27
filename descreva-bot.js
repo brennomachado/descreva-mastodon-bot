@@ -46,14 +46,15 @@ stream.on('message', async (response) => {
     let tentativas = 0;
     let in_reply_to_id = response.data.status.in_reply_to_id;
     while (!in_reply_to_id && tentativas < 5) {
-      console.log('in_reply_to_id missing, RETRYING...')
+      console.log('in_reply_to_id missing, RETRYING...');
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const response = await M.get('statuses/:id', { id: id_resp });
-      in_reply_to_id = response.data.in_reply_to_id;
+      in_reply_to_id = response.data.status.in_reply_to_id;
       tentativas++;
     }
     if (!in_reply_to_id) {
-      console.log('in_reply_to_id missing, ABORTING...')
+      console.log('in_reply_to_id missing, ABORTING...');
+      cabecalho('FIM DA VEZ', '-', cont);
       return;
     }
 
@@ -63,7 +64,9 @@ stream.on('message', async (response) => {
 
     //Procura #descrição de todas as formas nas Tags
     if (tags.length !== 0) {
-      const valida_tag_descricao = tags.some(tag => tag.match(/^descri..o|descreva$/im));
+      const valida_tag_descricao = tags.some((tag) =>
+        tag.match(/^descri..o|descreva$/im)
+      );
       console.log(`Valida Descrição: ${valida_tag_descricao}`);
 
       if (in_reply_to_id !== null && valida_tag_descricao) {
