@@ -48,8 +48,11 @@ stream.on('message', async (response) => {
     while (!in_reply_to_id && tentativas < 5) {
       console.log('in_reply_to_id missing, RETRYING...');
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      const response = await M.get('statuses/:id', { id: id_resp });
-      in_reply_to_id = response.data.status.in_reply_to_id;
+      const response_id = await M.get('statuses/:id', { id: id_resp });
+      in_reply_to_id = response_id.data.in_reply_to_id;
+      console.log(
+        `\tin_reply_to_id: ${in_reply_to_id} - Tentativa: ${tentativas + 1}\n`
+      );
       tentativas++;
     }
     if (!in_reply_to_id) {
