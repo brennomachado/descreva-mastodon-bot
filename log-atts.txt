@@ -1,6 +1,6 @@
 ATUALIZAÇÕES:
 
-2023.01.27: Corrigo problema que faz o bot funcionar apenas na segunda tentativa após uma falha ao recuperar o ID do toot original. Agradecimentos ao @claus@mastodon.com.br
+2023.01.27: Corrigido problema que faz o bot funcionar apenas na segunda tentativa após uma falha ao recuperar o ID do toot original. Agradecimentos ao @claus@mastodon.com.br
 
 2023.01.12: Adicionado a opção de deletar posts respondendo com a hashtag #deleta
 
