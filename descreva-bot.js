@@ -22,7 +22,7 @@ const stream = M.stream('streaming/user');
 let cont = 0;
 cabecalho('--START BOT--', ' ', ' ');
 // Ouvindo menções
-stream.on('message', (response) => {
+stream.on('message', async (response) => {
   if (response.event === 'notification' && response.data.type === 'mention') {
     cont++;
     cabecalho('INÍCIO STREAM', '~', cont);
@@ -39,54 +39,55 @@ stream.on('message', (response) => {
       )}\n`
     );
 
-    let id_resp = response.data.status.id;
-    let conta_resp = response.data.account.acct;
-    const in_reply_to_id = response.data.status.in_reply_to_id;
-    let tags = response.data.status.tags.length
-      ? response.data.status.tags.map((tag) => {
-          return tag.name.toLowerCase();
-        })
-      : 0;
+    const id_resp = response.data.status.id;
+    const conta_resp = response.data.account.acct;
+    const tags = response.data.status.tags.map((tag) => tag.name.toLowerCase());
+
+    let tentativas = 0;
+    let in_reply_to_id = response.data.status.in_reply_to_id;
+    while (!in_reply_to_id && tentativas < 5) {
+      console.log('in_reply_to_id missing, RETRYING...')
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await M.get('statuses/:id', { id: id_resp });
+      in_reply_to_id = response.data.in_reply_to_id;
+      tentativas++;
+    }
+    if (!in_reply_to_id) {
+      console.log('in_reply_to_id missing, ABORTING...')
+      return;
+    }
 
     console.log(`RESPONDER PARA: @${conta_resp}`);
     console.log(`TAGS USADAS: ${tags}\n`);
     console.log(`IN_REPLY_TO_ID: ${in_reply_to_id}`);
 
     //Procura #descrição de todas as formas nas Tags
-    if (tags != 0) {
-      const valida_tag_descricao = tags.reduce((encontrou, valor) => {
-        return encontrou + valor.match(/descri..o|descreva/im) ? 1 : 0;
-      }, 0);
+    if (tags.length !== 0) {
+      const valida_tag_descricao = tags.some(tag => tag.match(/^descri..o|descreva$/im));
       console.log(`Valida Descrição: ${valida_tag_descricao}`);
-      if (in_reply_to_id !== null && valida_tag_descricao !== 0) {
+
+      if (in_reply_to_id !== null && valida_tag_descricao) {
         var conteudos_toot = formataContent(response.data.status.content);
         conteudos_toot.tags = tags;
         doTheJob(conteudos_toot, in_reply_to_id, id_resp, conta_resp);
       } else {
         // PARA DELETAR POST
-        const deleta = tags.reduce((encontrou, valor) => {
-          return encontrou + valor.match(/delete|deleta/im) ? 1 : 0;
-        }, 0);
+        const deleta = tags.some((tag) => tag.match(/^delete|deleta$/im));
         console.log(`TENTATIVA DE DELETAR: ${deleta}`);
         if (deleta) {
-          let resposta = M.get(
-            'statuses/:id',
-            { id: in_reply_to_id },
-            (error, data) => {
-              let txt = `cc: <span class="h-card"><a href="${response.data.account.url}"`;
-              console.log(`@${conta_resp} pediu para deletar: ${data.id}`);
-              console.log(`\t\tURL: ${data.url}`);
+          const { data } = await M.get('statuses/:id', { id: in_reply_to_id });
+          console.log(`@${conta_resp} pediu para deletar: ${data.id}`);
+          console.log(`\t\tURL: ${data.url}`);
 
-              if (data.content.indexOf(txt) !== -1) {
-                console.log(`DELETANDO..`);
-                M.delete('statuses/:id', { id: data.id }, (error, data) => {});
-              } else {
-                console.log('NÃO FOI PERMITIDO DELETAR');
-                console.log(`\t\tA descrição não é de @${conta_resp}`);
-              }
-              cabecalho('FIM DA VEZ', '-', cont);
-            }
-          );
+          const txt = `cc: <span class="h-card"><a href="${response.data.account.url}"`;
+          if (data.content.indexOf(txt) !== -1) {
+            console.log(`DELETANDO..`);
+            await M.delete('statuses/:id', { id: data.id });
+          } else {
+            console.log('NÃO FOI PERMITIDO DELETAR');
+            console.log(`\t\tA descrição não é de @${conta_resp}`);
+          }
+          cabecalho('FIM DA VEZ', '-', cont);
         } else {
           console.log(`NÃO HÁ REPLY OU DESCRIÇÃO VÁLIDOS`);
           cabecalho('FIM DA VEZ', '-', cont);
@@ -227,11 +228,9 @@ async function doTheJob(conteudos, in_reply_to_id, id_resp, conta_resp) {
 
 async function facaGet(reply) {
   let ok = 1;
-  const parametro = { id: reply };
 
   //Para federar o conteúdo??
-  let resposta = await M.get('statuses/:id', parametro, (error, data) => {});
-  resposta = await M.get('statuses/:id', { id: reply }, (error, data) => {
+  const resposta = await M.get('statuses/:id', { id: reply }, (error, data) => {
     if (error) {
       // fs.writeFileSync(`JSON_ERROR.json`, JSON.stringify(data, null, 2));
       console.log(`ERRO na FacaGET \n\t${error}`);
