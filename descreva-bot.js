@@ -75,24 +75,19 @@ stream.on('message', async (response) => {
         const deleta = tags.some((tag) => tag.match(/^delete|deleta$/im));
         console.log(`TENTATIVA DE DELETAR: ${deleta}`);
         if (deleta) {
-          let resposta = M.get(
-            'statuses/:id',
-            { id: in_reply_to_id },
-            (error, data) => {
-              let txt = `cc: <span class="h-card"><a href="${response.data.account.url}"`;
-              console.log(`@${conta_resp} pediu para deletar: ${data.id}`);
-              console.log(`\t\tURL: ${data.url}`);
+          const { data } = await M.get('statuses/:id', { id: in_reply_to_id });
+          console.log(`@${conta_resp} pediu para deletar: ${data.id}`);
+          console.log(`\t\tURL: ${data.url}`);
 
-              if (data.content.indexOf(txt) !== -1) {
-                console.log(`DELETANDO..`);
-                M.delete('statuses/:id', { id: data.id }, (error, data) => {});
-              } else {
-                console.log('NÃO FOI PERMITIDO DELETAR');
-                console.log(`\t\tA descrição não é de @${conta_resp}`);
-              }
-              cabecalho('FIM DA VEZ', '-', cont);
-            }
-          );
+          const txt = `cc: <span class="h-card"><a href="${response.data.account.url}"`;
+          if (data.content.indexOf(txt) !== -1) {
+            console.log(`DELETANDO..`);
+            await M.delete('statuses/:id', { id: data.id });
+          } else {
+            console.log('NÃO FOI PERMITIDO DELETAR');
+            console.log(`\t\tA descrição não é de @${conta_resp}`);
+          }
+          cabecalho('FIM DA VEZ', '-', cont);
         } else {
           console.log(`NÃO HÁ REPLY OU DESCRIÇÃO VÁLIDOS`);
           cabecalho('FIM DA VEZ', '-', cont);
