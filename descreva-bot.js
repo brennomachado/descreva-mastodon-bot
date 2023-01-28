@@ -45,21 +45,7 @@ stream.on('message', async (response) => {
 
     let tentativas = 0;
     let in_reply_to_id = response.data.status.in_reply_to_id;
-    while (!in_reply_to_id && tentativas < 5) {
-      console.log('in_reply_to_id missing, RETRYING...');
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const response_id = await M.get('statuses/:id', { id: id_resp });
-      in_reply_to_id = response_id.data.in_reply_to_id;
-      console.log(
-        `\tin_reply_to_id: ${in_reply_to_id} - Tentativa: ${tentativas + 1}\n`
-      );
-      tentativas++;
-    }
-    if (!in_reply_to_id) {
-      console.log('in_reply_to_id missing, ABORTING...');
-      cabecalho('FIM DA VEZ', '-', cont);
-      return;
-    }
+    let valida_tag_descricao = false;
 
     console.log(`RESPONDER PARA: @${conta_resp}`);
     console.log(`TAGS USADAS: ${tags}\n`);
@@ -67,40 +53,56 @@ stream.on('message', async (response) => {
 
     //Procura #descrição de todas as formas nas Tags
     if (tags.length !== 0) {
-      const valida_tag_descricao = tags.some((tag) =>
+      valida_tag_descricao = tags.some((tag) =>
         tag.match(/^descri..o|descreva$/im)
       );
       console.log(`Valida Descrição: ${valida_tag_descricao}`);
+      const deleta = tags.some((tag) => tag.match(/^delete|deleta$/im));
 
-      if (in_reply_to_id !== null && valida_tag_descricao) {
+      if (valida_tag_descricao) {
+        //Verifica se teve retorno do in_reply_to_id != de null
+        while (!in_reply_to_id && tentativas < 6) {
+          console.log('in_reply_to_id missing, RETRYING...');
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          const response_id = await M.get('statuses/:id', { id: id_resp });
+          in_reply_to_id = response_id.data.in_reply_to_id;
+          console.log(
+            `\tin_reply_to_id: ${in_reply_to_id} - Tentativa: ${
+              tentativas + 1
+            }\n`
+          );
+          tentativas++;
+        }
+        if (!in_reply_to_id) {
+          console.log('in_reply_to_id missing, ABORTING...');
+          cabecalho('FIM DA VEZ', '-', cont);
+          return;
+        }
+
         var conteudos_toot = formataContent(response.data.status.content);
         conteudos_toot.tags = tags;
-        doTheJob(conteudos_toot, in_reply_to_id, id_resp, conta_resp);
-      } else {
-        // PARA DELETAR POST
-        const deleta = tags.some((tag) => tag.match(/^delete|deleta$/im));
+        await doTheJob(conteudos_toot, in_reply_to_id, id_resp, conta_resp);
+      } else if (deleta) {
         console.log(`TENTATIVA DE DELETAR: ${deleta}`);
-        if (deleta) {
+        if (in_reply_to_id) {
           const { data } = await M.get('statuses/:id', { id: in_reply_to_id });
           console.log(`@${conta_resp} pediu para deletar: ${data.id}`);
           console.log(`\t\tURL: ${data.url}`);
 
           const txt = `cc: <span class="h-card"><a href="${response.data.account.url}"`;
           if (data.content.indexOf(txt) !== -1) {
-            console.log(`DELETANDO..`);
+            console.log(`DELETANDO...`);
             await M.delete('statuses/:id', { id: data.id });
           } else {
             console.log('NÃO FOI PERMITIDO DELETAR');
             console.log(`\t\tA descrição não é de @${conta_resp}`);
           }
-          cabecalho('FIM DA VEZ', '-', cont);
-        } else {
-          console.log(`NÃO HÁ REPLY OU DESCRIÇÃO VÁLIDOS`);
-          cabecalho('FIM DA VEZ', '-', cont);
         }
+        cabecalho('FIM DA VEZ', '-', cont);
       }
-    } else {
-      console.log(`NÃO HÁ TAGS VÁLIDAS`);
+    }
+    if (tags.length === 0 && (!valida_tag_descricao || deleta)) {
+      console.log(`NÃO HÁ TAGS ou REPLY VÁLIDAS`);
       cabecalho('FIM DA VEZ', '-', cont);
     }
   }
