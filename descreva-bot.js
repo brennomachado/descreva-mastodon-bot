@@ -27,10 +27,10 @@ stream.on('message', async (response) => {
     cont++;
     cabecalho('INÍCIO STREAM', '~', cont);
     // Para baixar e ver a organização do json
-    // fs.writeFileSync(
-    //   `NOT-CONT${new Date().getTime()}.json`,
-    //   JSON.stringify(response, null, 2)
-    // );
+    fs.writeFileSync(
+      `RESPONSE-${new Date().getTime()}.json`,
+      JSON.stringify(response, null, 2)
+    );
     console.log(`RESPONSE.CONTENT:\n\t${response.data.status.content}\n`);
     console.log(
       `RESPONSE.CONTENT LIMPO:\n\t${response.data.status.content.replace(
@@ -81,7 +81,13 @@ stream.on('message', async (response) => {
 
         var conteudos_toot = formataContent(response.data.status.content);
         conteudos_toot.tags = tags;
-        await doTheJob(conteudos_toot, in_reply_to_id, id_resp, conta_resp);
+        await doTheJob(
+          conteudos_toot,
+          in_reply_to_id,
+          id_resp,
+          conta_resp,
+          response.data.status.url
+        );
       } else if (deleta) {
         console.log(`TENTATIVA DE DELETAR: ${deleta}`);
         if (in_reply_to_id) {
@@ -163,13 +169,19 @@ function formataContent(content) {
   return conteudos;
 }
 
-async function doTheJob(conteudos, in_reply_to_id, id_resp, conta_resp) {
+async function doTheJob(
+  conteudos,
+  in_reply_to_id,
+  id_resp,
+  conta_resp,
+  url_reply
+) {
   console.log(`REPLY TO: ${in_reply_to_id}\n`);
-  let conteudo_get = await facaGet(in_reply_to_id);
+  let conteudo_get = await facaGet(url_reply, in_reply_to_id);
 
   // Verifica visibilidade do toot
   if (conteudo_get !== 0) {
-    const visivel = conteudo_get.data.visibility;
+    const visivel = conteudo_get.visibility;
     if (visivel === 'private' || visivel === 'direct') {
       console.log(`VISIBILIDADE: Não compatível - ${visivel}`);
       conteudo_get = 0;
@@ -179,10 +191,10 @@ async function doTheJob(conteudos, in_reply_to_id, id_resp, conta_resp) {
   }
 
   //Verifica se houve Get válido e se há imagem no mesmo antes de continuar
-  if (conteudo_get !== 0 && conteudo_get.data.media_attachments.length !== 0) {
-    let url = conteudo_get.data.media_attachments[0].remote_url;
-    if (url === null) url = conteudo_get.data.media_attachments[0].url;
-    conteudos.url = conteudo_get.data.url;
+  if (conteudo_get !== 0 && conteudo_get.media_attachments.length !== 0) {
+    let url = conteudo_get.media_attachments[0].remote_url;
+    if (url === null) url = conteudo_get.media_attachments[0].url;
+    conteudos.url = conteudo_get.url;
 
     console.log(`URL DA IMAGEM: ${url}\n`);
     download(url, './imagem.png', async () => {
@@ -194,7 +206,7 @@ async function doTheJob(conteudos, in_reply_to_id, id_resp, conta_resp) {
         description: conteudos.content[0],
       };
       const uploadResponse = await M.post('media', uploadParams);
-      const texto_original = conteudo_get.data.content
+      const texto_original = conteudo_get.content
         .replace(/<p>>?/gm, '\n\n')
         .replace(/<br>>?/gm, '\n')
         .replace(/<[^>]*>?/gm, '');
@@ -209,9 +221,9 @@ async function doTheJob(conteudos, in_reply_to_id, id_resp, conta_resp) {
       if (conteudos.cw) {
         tootParams.spoiler_text = conteudos.texto_cw;
       } else {
-        tootParams.spoiler_text = conteudo_get.data.spoiler_text;
+        tootParams.spoiler_text = conteudo_get.spoiler_text;
       }
-      if (conteudo_get.data.sensitive === true) {
+      if (conteudo_get.sensitive === true) {
         conteudos.sensitive = true;
         tootParams.sensitive = true;
       }
@@ -227,32 +239,33 @@ async function doTheJob(conteudos, in_reply_to_id, id_resp, conta_resp) {
   } else {
     if (conteudo_get === 0) console.log(`Erro recebido do M.GET retorno 0`);
     else {
-      if (conteudo_get.data.media_attachments.length === 0)
+      if (conteudo_get.media_attachments.length === 0)
         console.log(`TOOT ORIGINAL SEM IMAGENS`);
     }
     cabecalho('FIM DA VEZ', '-', cont);
   }
 }
 
-async function facaGet(reply) {
-  let ok = 1;
+async function facaGet(url, in_reply_to_id) {
+  let data = 1;
 
-  //Para federar o conteúdo??
-  const resposta = await M.get('statuses/:id', { id: reply }, (error, data) => {
-    if (error) {
-      // fs.writeFileSync(`JSON_ERROR.json`, JSON.stringify(data, null, 2));
-      console.log(`ERRO na FacaGET \n\t${error}`);
-      ok = 0;
-    } else {
-      // fs.writeFileSync(`JSON_RESP_OK.json`, JSON.stringify(data, null, 2));
-      console.log(`STATUS ORIGINAL:\n\t${data.content}\n`);
-    }
-  });
-  if (ok) {
-    console.log(`COPIADO DE @${resposta.data.account.acct}\n`);
-    return resposta;
-  } else {
-    console.log(`ERRO M.GET:\n\t${resposta.error}\n`);
-    return 0;
+  let link = url.slice(0, url.indexOf('@'));
+  console.log(`URL: ${link}`);
+  try {
+    const response = await findToot(in_reply_to_id, link);
+    data = await response.json();
+  } catch (err) {
+    data = 0;
   }
+  console.log(`\n--\nDATA: ${data.content}\n--\n`);
+  console.log(`\n--\nDATA: ${data.media_attachments}\n--\n`);
+  fs.writeFileSync(
+    `DATA-FACAGET-${new Date().getTime()}.json`,
+    JSON.stringify(data, null, 2)
+  );
+  return data;
+}
+function findToot(statuses, server) {
+  console.log(`\n--\nURL: ${server}api/v1/statuses/${statuses}\n--\n`);
+  return fetch(`${server}api/v1/statuses/${statuses}`);
 }
